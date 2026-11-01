@@ -279,7 +279,6 @@ export function registerGoalLifecycle(
     if (message.role === "custom") {
       if (Reflect.get(message, "customType") === GOAL_CONTRACT_MESSAGE_TYPE) return;
       if (runtime.isActiveBudgetWrapUpMessage(message)) return;
-      if (runtime.activeGoal?.waiting) runtime.clearGoalWait(ctx, runtime.activeGoal.id);
       if (runtime.guardAbortGoalId === runtime.activeGoal?.id) {
         runtime.guardAbortGoalId = undefined;
       }
@@ -461,8 +460,9 @@ export function registerGoalLifecycle(
     return goalContractBoundaryResult(ctx, runtime.activeGoal);
   });
 
-  pi.on("agent_start", (_event, _ctx) => {
+  pi.on("agent_start", (_event, ctx) => {
     if (!sessionActive) return;
+    if (runtime.activeGoal?.waiting) runtime.clearGoalWait(ctx, runtime.activeGoal.id);
     const activeGoal = runtime.activeGoal;
     if (activeGoal && runtime.guardAbortGoalId === activeGoal.id && activeGoal.status === "paused") {
       if (runtime.consumeQueuedNonGoalFollowUpForAgentStart()) {

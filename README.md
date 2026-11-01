@@ -256,12 +256,12 @@ Another extension can win the race after the idle check, and its newer turn supe
 
 ## ⏳ External waiting
 
-Use `goal_wait` only after arranging a monitor or other wake source that will inject a non-Goal message when external state changes:
+Use `goal_wait` when progress depends on work already in flight that will send its own message when it finishes, for example an async agent whose result has not arrived. That pending message is the wake source; no further wake source needs arranging. Work that sends no message, such as a background shell command, is not a wake source:
 
 ```text
 goal_wait({
   goal_id: "<current-goal-id>",
-  reason: "Waiting for the review monitor",
+  reason: "Waiting for the async review agents",
   resume_after_ms: 300000
 })
 ```
@@ -282,11 +282,12 @@ The warning reports bounded provider status and explains that a follow-up or `/g
 Context-overflow compaction exhaustion remains blocked because another model turn can repeat the same oversized request without corrective compaction.
 
 Interactive input, RPC input, another extension's `sendUserMessage()` input, and supported non-Goal custom follow-ups clear the wait before their turn runs.
+A custom message that is appended without starting a turn, such as `pi.sendMessage(..., { triggerTurn: false })` while the session is idle, leaves the wait in place.
 pi-goal-owned kickoff, resume, edit, continuation, stale, or cancelled prompts do not count as external wake-ups.
-Pi does not expose the sending extension's identity, so any non-Goal extension message is treated as a wake signal.
+Pi does not expose the sending extension's identity, so any non-Goal extension message that starts a turn is treated as a wake signal.
 
 After a waking turn ends, ordinary continuation rules apply again.
-The agent can complete or block the Goal, continue working, or call `goal_wait` again after arranging the next wake source.
+The agent can complete or block the Goal, continue working, or call `goal_wait` again if work is still in flight.
 `/goal resume` also clears waiting and sends one manual resume prompt without resetting cumulative usage or the safety epoch.
 `/goal pause`, clear, edit, replace, completion, blocking, terminal limits, tool loss, session replacement, and shutdown cancel the in-memory deadline owner.
 
